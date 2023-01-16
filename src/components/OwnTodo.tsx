@@ -1,49 +1,39 @@
 import React, { ChangeEvent, useEffect, useState } from "react";
+import { useAppSelector, useAppDispatch } from "../hooks/reactRedux";
+import {
+  addTodo as add,
+  deleteTodo as remove,
+  editTodo,
+  handleChange,
+  TTodo,
+} from "../reducers/todos";
 
 type Props = {};
 
-type Todo = {
-  id: number | string;
-  title: string;
-  isCompleted: boolean;
-};
-
 function OwnTodo({}: Props) {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [title, setTitle] = useState<string>("");
+  // const [todos, setTodos] = useState<Todo[]>([]);
   const [search, setSearch] = useState<string>("");
+  const [editInput, setEditInput] = useState<string>("hidden");
+  const [editInitialValue, setEditInitialValue] = useState<string>("");
+  const title = useAppSelector((state) => state.todos.title);
+  const todos = useAppSelector((state) => state.todos.todos);
+  const dispatch = useAppDispatch();
+
   const [selected, setSelected] = useState<"all" | "active" | "complete">(
     "all"
   );
 
   const addTodo = () => {
-    let newTodo: Todo = {
-      id: new Date().getTime(),
-      title: title,
-      isCompleted: false,
-    };
-
-    setTodos((prev) => [...prev, newTodo]);
-    setTitle("");
+    dispatch(add());
   };
 
-  const deleteTodo = (id: number | string) => {
-    let updateTodos: Todo[] = [...todos].filter((todo: Todo) => todo.id !== id);
-    setTodos(updateTodos);
+  const completeTodo = (id: string | number) => {};
+
+  const deleteTodo = (id: string | number) => {
+    dispatch(remove(id));
   };
 
-  const completeTodo = (id: number | string) => {
-    let completeTodos: Todo[] = todos.map((todo: Todo) => {
-      if (id === todo.id) {
-        todo.isCompleted = !todo.isCompleted;
-      }
-      return todo;
-    });
-
-    setTodos(completeTodos);
-  };
-
-  useEffect(() => {}, [search])
+  useEffect(() => {}, [search]);
 
   return (
     <div>
@@ -53,7 +43,7 @@ function OwnTodo({}: Props) {
           className="border rounded border-red-500 m-2 px-2 p-1"
           value={title}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            setTitle(event.target.value)
+            dispatch(handleChange(event.target.value))
           }
         />
         <button
@@ -78,7 +68,7 @@ function OwnTodo({}: Props) {
           className="border rounded border-blue-500 bg-blue-400 p-1"
           onChange={(event: ChangeEvent<any>) =>
             setSelected(event.target.value)
-        }
+          }
         >
           <option value="all">All</option>
           <option value="complete">complete</option>
@@ -89,25 +79,51 @@ function OwnTodo({}: Props) {
       {todos.length > 0 &&
         selected === "all" &&
         search === "" &&
-        todos.map((todo: Todo) => {
+        todos.map((todo: TTodo) => {
           return (
             <div
               key={todo.id}
               className="w-[400px] border rounded border-gray-800 m-2 mx-auto"
             >
               <h2
-                style={
-                  todo.isCompleted ? { textDecoration: "line-through" } : {}
-                }
+                style={todo.complete ? { textDecoration: "line-through" } : {}}
               >
                 {todo.title}
               </h2>
               <button
                 onClick={() => completeTodo(todo.id)}
-                className="border rounded border-green-500 bg-green-500 p-1 my-2 mx-2"
+                className="border border-slate-400 bg-white"
               >
                 complete
               </button>
+              <button
+                onClick={() => {
+                  setEditInput("flex flex-row space-x-2 items-center");
+                  setEditInitialValue(todo.title);
+                }}
+                className="border rounded border-slate-500 bg-slate-500 p-1 my-2 mx-2"
+              >
+                Edit
+              </button>
+              <div className={editInput}>
+                <input
+                  value={editInitialValue}
+                  onChange={(e) => setEditInitialValue(e.target.value)}
+                  className="border rounded border-slate-500 p-1 my-2 mx-2"
+                />
+                <button
+                  onClick={() => {
+                    dispatch(
+                      editTodo({ key1: todo.id, key2: editInitialValue })
+                    );
+                    console.log("Hi");
+                  }}
+                  className="bg-slate-300 px-2 py-1"
+                >
+                  Save
+                </button>
+              </div>
+
               <button
                 onClick={() => deleteTodo(todo.id)}
                 className="border rounded border-orange-500 bg-orange-500 p-1"
@@ -121,10 +137,10 @@ function OwnTodo({}: Props) {
         selected === "all" &&
         search.length > 0 &&
         todos
-          .filter((todo: Todo) =>
+          .filter((todo: TTodo) =>
             todo.title.toLowerCase().includes(search.toLowerCase())
           )
-          .map((todo: Todo) => {
+          .map((todo: TTodo) => {
             return (
               <div
                 key={todo.id}
@@ -132,7 +148,7 @@ function OwnTodo({}: Props) {
               >
                 <h2
                   style={
-                    todo.isCompleted ? { textDecoration: "line-through" } : {}
+                    todo.complete ? { textDecoration: "line-through" } : {}
                   }
                 >
                   {todo.title}
@@ -155,8 +171,8 @@ function OwnTodo({}: Props) {
       {todos.length > 0 &&
         selected === "complete" &&
         todos
-          .filter((todo: Todo) => todo.isCompleted)
-          .map((todo: Todo) => {
+          .filter((todo: TTodo) => todo.complete)
+          .map((todo: TTodo) => {
             return (
               <div
                 key={todo.id}
@@ -164,7 +180,7 @@ function OwnTodo({}: Props) {
               >
                 <h2
                   style={
-                    todo.isCompleted ? { textDecoration: "line-through" } : {}
+                    todo.complete ? { textDecoration: "line-through" } : {}
                   }
                 >
                   {todo.title}
@@ -184,11 +200,11 @@ function OwnTodo({}: Props) {
               </div>
             );
           })}
-          {todos.length > 0 &&
+      {todos.length > 0 &&
         selected === "active" &&
         todos
-          .filter((todo: Todo) => !todo.isCompleted)
-          .map((todo: Todo) => {
+          .filter((todo: TTodo) => !todo.complete)
+          .map((todo: TTodo) => {
             return (
               <div
                 key={todo.id}
@@ -196,7 +212,7 @@ function OwnTodo({}: Props) {
               >
                 <h2
                   style={
-                    todo.isCompleted ? { textDecoration: "line-through" } : {}
+                    todo.complete ? { textDecoration: "line-through" } : {}
                   }
                 >
                   {todo.title}
@@ -216,7 +232,6 @@ function OwnTodo({}: Props) {
               </div>
             );
           })}
-        
     </div>
   );
 }
